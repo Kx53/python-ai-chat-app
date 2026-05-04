@@ -1,0 +1,26 @@
+{
+  "accent_color": "Purple",
+  "providers": {
+    "lm_studio": {
+      "base_url": "http://localhost:1234/v1",
+      "api_key": "lm-studio"
+    },
+    "openai": {
+      "base_url": "https://api.openai.com/v1",
+      "api_key": ""
+    },
+    "anthropic": {
+      "base_url": "https://openrouter.ai/api/v1",
+      "api_key": ""
+    },
+    "google": {
+      "base_url": "https://generativelanguage.googleapis.com/v1beta/openai/",
+      "api_key": ""
+    }
+  },
+  "current_model": "Gemini 3.1 Flash",
+  "personalization": {
+    "user_name": "",
+    "about_user": ""
+  }
+}
