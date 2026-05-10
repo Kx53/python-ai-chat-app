@@ -36,9 +36,9 @@ class SettingsUI:
                             is_active = (active_tab["name"] == name)
                             bg_class = "bg-[#2F2F2F] font-semibold" if is_active else "bg-transparent hover:bg-[#2F2F2F]"
                             
-                            def make_tab_handler(n):
-                                def handler(e):
-                                    active_tab["name"] = n
+                            def make_tab_handler(tab_name):
+                                def handler(event):
+                                    active_tab["name"] = tab_name
                                     render_tabs.refresh()
                                     render_tab_content.refresh()
                                 return handler
@@ -66,30 +66,30 @@ class SettingsUI:
                                 with ui.row().classes("gap-4 items-center mb-8"):
                                     current_color = self.__settings.get("accent_color", "Green")
                                     
-                                    def make_color_selector(c_name):
-                                        def handler(e):
-                                            self.__settings["accent_color"] = c_name
+                                    def make_color_selector(color_name):
+                                        def handler(event):
+                                            self.__settings["accent_color"] = color_name
                                             render_tab_content.refresh()
                                         return handler
 
-                                    for c_name, c_classes in ACCENT_COLORS.items():
-                                        is_selected = (c_name == current_color)
-                                        bg_class = c_classes["bg"]
+                                    for color_name, color_classes in ACCENT_COLORS.items():
+                                        is_selected = (color_name == current_color)
+                                        bg_class = color_classes["bg"]
                                         ring_class = "ring-2 ring-offset-2 ring-offset-[#2F2F2F] ring-white" if is_selected else "opacity-70 hover:opacity-100"
                                         
                                         c_el = ui.element('div').classes(f"w-8 h-8 rounded-full cursor-pointer transition-all {bg_class} {ring_class} hover:scale-110")
-                                        c_el.on("click", make_color_selector(c_name))
+                                        c_el.on("click", make_color_selector(color_name))
                                             
                             elif active_tab["name"] == "API Providers":
                                 ui.label("กำหนดการเชื่อมต่อกับ AI Provider ต่างๆ").classes("text-[#B4B4B4] mb-6")
                                 
                                 def make_updater(provider, key):
-                                    def handler(e):
+                                    def handler(event):
                                         if "providers" not in self.__settings: 
                                             self.__settings["providers"] = {}
                                         if provider not in self.__settings["providers"]: 
                                             self.__settings["providers"][provider] = {}
-                                        self.__settings["providers"][provider][key] = e.value
+                                        self.__settings["providers"][provider][key] = event.value
                                     return handler
                                 
                                 # LM Studio
@@ -121,8 +121,8 @@ class SettingsUI:
                                     self.__settings["personalization"][key] = value
 
                                 def make_person_updater(key):
-                                    def handler(e):
-                                        update_personalization(key, e.value)
+                                    def handler(event):
+                                        update_personalization(key, event.value)
                                     return handler
 
                                 ui.label("About You").classes("text-[1.05rem] font-semibold text-[#ECECEC] mb-2")

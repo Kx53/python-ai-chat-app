@@ -54,18 +54,22 @@ class ChatApplication:
         sessions = await self.__storage.load_all_sessions()
         
         # จัดเรียงจากอัพเดทล่าสุดไปเก่าสุด
-        sorted_sessions = sorted(sessions.items(), key=lambda x: x[1].get("updated_at", ""), reverse=True)
+        sorted_sessions = sorted(
+            sessions.items(),
+            key=lambda session_item: session_item[1].get("updated_at", ""),
+            reverse=True
+        )
 
         with col:
-            for sid, data in sorted_sessions:
-                title = data.get("title", "New Chat")
-                is_active = (sid == self.__current_session_id)
+            for session_id, session_data in sorted_sessions:
+                title = session_data.get("title", "New Chat")
+                is_active = (session_id == self.__current_session_id)
                 bg_class = "bg-[#212121]" if is_active else "bg-transparent hover:bg-[#212121]"
                 
                 # สร้างส่วนแสดงแต่ละแชท
-                with ui.row().classes(f"w-full px-3 py-2 rounded-lg cursor-pointer transition-colors items-center justify-between group {bg_class}").on("click", lambda e, sid=sid: self.__switch_session(sid)):
+                with ui.row().classes(f"w-full px-3 py-2 rounded-lg cursor-pointer transition-colors items-center justify-between group {bg_class}").on("click", lambda event, session_id=session_id: self.__switch_session(session_id)):
                     ui.label(title).classes("truncate text-[0.9rem] text-[#ECECEC] flex-1 mr-2")
-                    ui.icon("delete_outline").classes("text-[#B4B4B4] hover:text-[#ECECEC] opacity-0 group-hover:opacity-100 transition-opacity text-[1.1rem]").on("click.stop", lambda e, sid=sid: self.__delete_session_handler(sid))
+                    ui.icon("delete_outline").classes("text-[#B4B4B4] hover:text-[#ECECEC] opacity-0 group-hover:opacity-100 transition-opacity text-[1.1rem]").on("click.stop", lambda event, session_id=session_id: self.__delete_session_handler(session_id))
 
     async def __switch_session(self, sid: str):
         """เปลี่ยนหน้าไปยังแชทเก่าที่เลือก"""
@@ -142,13 +146,13 @@ class ChatApplication:
         
         # 5. ใส่ข้อมูลส่วนตัว (Personalization) เพื่อให้ AI รู้จักผู้ใช้
         payload = []
-        p = settings_live.get("personalization", {})
-        if p.get("user_name") or p.get("about_user"):
+        personalization = settings_live.get("personalization", {})
+        if personalization.get("user_name") or personalization.get("about_user"):
             sys_msg = "You are a helpful AI assistant. "
-            if p.get("user_name"): 
-                sys_msg += f"The user's name is {p['user_name']}. "
-            if p.get("about_user"): 
-                sys_msg += f"Here is some information about the user: {p['about_user']}. "
+            if personalization.get("user_name"): 
+                sys_msg += f"The user's name is {personalization['user_name']}. "
+            if personalization.get("about_user"): 
+                sys_msg += f"Here is some information about the user: {personalization['about_user']}. "
             payload.append({"role": "system", "content": sys_msg})
             
         payload.extend(self.__chat_messages)
@@ -158,8 +162,8 @@ class ChatApplication:
             ai_text = await self.__api.send_message(
                 payload, provider["base_url"], provider["api_key"], model_info["id"]
             )
-        except Exception as e:
-            ui.notify(str(e), type="negative", position="top", timeout=5000)
+        except (ConnectionError, PermissionError, TimeoutError, ValueError, RuntimeError) as error:
+            ui.notify(str(error), type="negative", position="top", timeout=5000)
             ai_text = None
         finally:
             # ไม่ว่าจะสำเร็จหรือเกิด Error ก็ต้องเปิดปุ่มส่งข้อความใหม่
@@ -226,8 +230,8 @@ class ChatApplication:
                 # แถบเลือกโมเดลด้านบน
                 with ui.row().classes("w-full h-14 items-center px-4 absolute top-0 z-20 bg-gradient-to-b from-[#212121] to-transparent pt-2"):
                     
-                    async def change_model(e):
-                        self.__settings["current_model"] = e.value
+                    async def change_model(event):
+                        self.__settings["current_model"] = event.value
                         await self.__storage.save_settings(self.__settings)
 
                     ui.select(

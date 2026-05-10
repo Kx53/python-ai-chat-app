@@ -10,7 +10,15 @@ import base64
 import mimetypes
 from typing import Optional
 
-from openai import AsyncOpenAI, APIConnectionError, AuthenticationError, APITimeoutError
+from openai import (
+    APIConnectionError,
+    APIError,
+    APITimeoutError,
+    AsyncOpenAI,
+    AuthenticationError,
+    BadRequestError,
+    RateLimitError,
+)
 
 class APIHandler:
     def __init__(self):
@@ -60,9 +68,9 @@ class APIHandler:
 
         # กรองเอาเฉพาะ role และ content ก่อนส่งให้ API โดยใช้ลูป for ธรรมดาเพื่อให้อ่านง่าย
         api_messages = []
-        for m in messages:
-            if m.get("role") in ("user", "assistant", "system"):
-                api_messages.append({"role": m["role"], "content": m["content"]})
+        for message in messages:
+            if message.get("role") in ("user", "assistant", "system"):
+                api_messages.append({"role": message["role"], "content": message["content"]})
 
         try:
             # ดึงคำตอบจาก AI
@@ -73,21 +81,31 @@ class APIHandler:
             )
             return response.choices[0].message.content or ""
 
-        except APIConnectionError as e:
+        except APIConnectionError as error:
             raise ConnectionError(
                 f"ไม่สามารถเชื่อมต่อ {base_url} ได้ — "
                 "ตรวจสอบว่า LM Studio / OpenRouter เปิดอยู่"
-            ) from e
+            ) from error
 
-        except AuthenticationError as e:
+        except AuthenticationError as error:
             raise PermissionError(
                 "API Key ไม่ถูกต้อง — กรุณาตรวจสอบ API Key ในหน้าตั้งค่า (Sidebar)"
-            ) from e
+            ) from error
 
-        except APITimeoutError as e:
+        except APITimeoutError as error:
             raise TimeoutError(
                 "Request หมดเวลา — โมเดลอาจใช้เวลานาน ลองใหม่อีกครั้ง"
-            ) from e
+            ) from error
 
-        except Exception as e:
-            raise RuntimeError(f"เกิดข้อผิดพลาดจาก API: {e}") from e
+        except RateLimitError as error:
+            raise RuntimeError(
+                "ใช้งาน API เกินจำนวนครั้งที่กำหนด กรุณารอสักครู่แล้วลองใหม่"
+            ) from error
+
+        except BadRequestError as error:
+            raise ValueError(
+                f"คำขอไม่ถูกต้อง หรือโมเดลไม่รองรับข้อมูลนี้: {error}"
+            ) from error
+
+        except APIError as error:
+            raise RuntimeError(f"เกิดข้อผิดพลาดจาก API Provider: {error}") from error
